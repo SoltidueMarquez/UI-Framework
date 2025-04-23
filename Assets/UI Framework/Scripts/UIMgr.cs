@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace UI_Framework.Scripts
@@ -10,11 +11,7 @@ namespace UI_Framework.Scripts
     {
         [Tooltip("UI字典，键为物体名称，值为类")] public Dictionary<int, UIFormBase> forms = new Dictionary<int, UIFormBase>();
 
-        [Tooltip("双向链表，用于LRU，最前端是最近使用的，全都是打开的面板")]
-        public LinkedList<UIFormBase> ShowFormsLRU = new LinkedList<UIFormBase>();
-
-        [Tooltip("字典存储窗体名称对应的链表节点，用于快速LRU操作")] private Dictionary<int, LinkedListNode<UIFormBase>> lruNodeDict
-            = new Dictionary<int, LinkedListNode<UIFormBase>>();
+        [Tooltip("当前显示的UI")] public List<int> activeUIList = new List<int>();
 
         [Tooltip("面板根节点")] public Transform uiRoot => this.transform;
 
@@ -50,17 +47,23 @@ namespace UI_Framework.Scripts
 
         #region LRU维护
 
+        [Tooltip("双向链表，用于LRU，最前端是最近使用的，全都是打开的面板")]
+        public LinkedList<UIFormBase> formsLRU = new LinkedList<UIFormBase>();
+
+        [Tooltip("字典存储窗体名称对应的链表节点，用于快速LRU操作")] private Dictionary<int, LinkedListNode<UIFormBase>> lruNodeDict
+            = new Dictionary<int, LinkedListNode<UIFormBase>>();
+
         private void UpdateUseLru(UIFormBase form)
         {
             // 如果存在节点，移动到链表头部表示最近使用
             if (lruNodeDict.TryGetValue(form.id, out var node))
             {
-                ShowFormsLRU.Remove(node);
-                ShowFormsLRU.AddFirst(node);
+                formsLRU.Remove(node);
+                formsLRU.AddFirst(node);
             }
-            else// 如果不存在就更新
+            else // 如果不存在就更新
             {
-                var newNode = ShowFormsLRU.AddFirst(form);
+                var newNode = formsLRU.AddFirst(form);
                 lruNodeDict[form.id] = newNode;
             }
         }
@@ -70,7 +73,7 @@ namespace UI_Framework.Scripts
             // 从LRU链表和字典中移除
             if (lruNodeDict.TryGetValue(form.id, out var node))
             {
-                ShowFormsLRU.Remove(node);
+                formsLRU.Remove(node);
                 lruNodeDict.Remove(form.id);
             }
         }
@@ -110,8 +113,10 @@ namespace UI_Framework.Scripts
             if (!forms.ContainsKey(id)) return;
 
             var form = forms[id];
+            if (form.isOpen) return; //已经打开了就直接返回
             form.Open();
 
+            activeUIList.Add(form.id);
             // LRU更新，将节点移到最前面
             UpdateUseLru(form);
         }
@@ -122,10 +127,40 @@ namespace UI_Framework.Scripts
             if (!forms.ContainsKey(id)) return;
 
             var form = forms[id];
+            if (!form.isOpen) return;
             form.Close();
 
-            // LRU更新，删除节点
-            RemoveUnUseLru(form);
+            activeUIList.Remove(form.id);
+            // LRU更新
+            UpdateUseLru(form);
+        }
+
+        // 隐藏所有UI
+        public void HideAllUIForm()
+        {
+            foreach (var id in activeUIList.Where(id => forms.ContainsKey(id)))
+            {
+                HideUIForm(id);
+            }
+
+            activeUIList.Clear();
+        }
+
+        // 倒序关闭UI
+        public void HideUIFormTurn()
+        {
+            for (var i = activeUIList.Count - 1; i >= 0; i--)
+            {
+                HideUIForm(activeUIList[i]);
+            }
+
+            activeUIList.Clear();
+        }
+
+        // 是否有显示的UI
+        public bool HasActiveForm()
+        {
+            return activeUIList.Count > 0;
         }
 
         #endregion
@@ -138,5 +173,17 @@ namespace UI_Framework.Scripts
         void UnRegisterForm() => UIMgr.Instance.UnRegisterForm(this);
 
         UIFormBase GetUIFormBase();
+    }
+
+    public enum FormAnimType
+    {
+        None,
+        Fade,
+        Zoom
+    }
+    
+    public enum FormType{
+        None,
+        Top,// 总是在上层
     }
 }

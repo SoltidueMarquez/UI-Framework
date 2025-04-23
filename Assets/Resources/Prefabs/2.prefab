@@ -90,6 +90,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isOpen: 0
+  formAnimType: 1
   ifUnique: 0
 --- !u!1 &6453348190564096024
 GameObject:

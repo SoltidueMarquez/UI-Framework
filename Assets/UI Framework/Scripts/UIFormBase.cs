@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace UI_Framework.Scripts
 {
@@ -10,6 +11,10 @@ namespace UI_Framework.Scripts
         private UIMgr m_UIMgr;
 
         [Tooltip("打开状态")] public bool isOpen;
+
+        [Tooltip("UI显示类型")] public FormType formType = FormType.None;
+
+        [Tooltip("动画类型")] public FormAnimType formAnimType;
 
         /// <summary>
         /// 预制体的加载路径，一定要重写
@@ -66,16 +71,50 @@ namespace UI_Framework.Scripts
         
         public void Open()
         {
-            gameObject.SetActive(true);
             isOpen = true;
+            OpenAnim();
             OnOpen();
         }
 
         public void Close()
         {
-            gameObject.SetActive(false);
             isOpen = false;
+            CloseAnim();
             OnClose();
+        }
+        #endregion
+
+        #region 动画
+        private void OpenAnim()
+        {
+            switch (formAnimType)
+            {
+                case FormAnimType.None:
+                    gameObject.SetActive(true);
+                    break;
+                case FormAnimType.Fade:
+                    UIAnimation.FadeIn(gameObject);
+                    break;
+                case FormAnimType.Zoom:
+                    UIAnimation.ZoomIn(gameObject);
+                    break;
+            }
+        }
+        
+        private void CloseAnim()
+        {
+            switch (formAnimType)
+            {
+                case FormAnimType.None:
+                    gameObject.SetActive(false);
+                    break;
+                case FormAnimType.Fade:
+                    UIAnimation.FadeOut(gameObject);
+                    break;
+                case FormAnimType.Zoom:
+                    UIAnimation.ZoomOut(gameObject);
+                    break;
+            }
         }
         #endregion
 
