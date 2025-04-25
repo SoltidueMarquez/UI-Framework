@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using Component = UnityEngine.Component;
 
 namespace UI_Framework.Scripts.Tools
 {
-    /// <summary>
-    /// Unity不能在GameObject上挂载泛型类，草！
-    /// </summary>
     public class UIList : MonoBehaviour
     {
         public Transform cloneItem;
         public List<Component> items = new();
-        public int Count => items.Count;
+        [Tooltip("item个数")] public int Count => items.Count;
 
         public Component this[int key] => GetItem<Component>(key);
 
@@ -29,6 +26,7 @@ namespace UI_Framework.Scripts.Tools
 #if UNITY_EDITOR
         protected void OnValidate()
         {
+            // 动态更新需要克隆的UI的物体
             if (cloneItem == null && transform.childCount > 0)
             {
                 cloneItem = transform.GetChild(0);
@@ -36,6 +34,34 @@ namespace UI_Framework.Scripts.Tools
         }
 #endif
 
+        #region 克隆方法
+
+        /// <summary>
+        /// 克隆UI
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public virtual T CloneItem<T>() where T : Component
+        {
+            Transform item = Instantiate(cloneItem, transform); // 生成物体
+            item.gameObject.SetActive(true);
+            T component = item.GetComponent<T>();
+            if (component == null)
+            {
+                component = item.GetComponentInChildren<T>();
+            }
+
+            items.Add(component); // 添加进列表中
+            item.gameObject.name += items.Count; // 更改名称
+            return component;
+        }
+
+        /// <summary>
+        /// 克隆UI到指定下标位置
+        /// </summary>
+        /// <param name="insertIndex"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public virtual T CloneItem<T>(int insertIndex) where T : Component
         {
             if (insertIndex < 0 || insertIndex > items.Count)
@@ -47,110 +73,21 @@ namespace UI_Framework.Scripts.Tools
             T component = CloneItem<T>();
             items.RemoveAt(items.Count - 1);
             items.Insert(insertIndex, component);
+            // 调整游戏对象在其父级下的子对象列表中的顺序，将其移动到指定位置的后一位
             // SiblingIndex会计算inactive的物体，第一个是模板物体，所以items中是从1开始
             component.transform.SetSiblingIndex(insertIndex + 1);
             return component;
         }
 
-        public virtual T CloneItem<T>() where T : Component
-        {
-            Transform item = Instantiate(cloneItem, transform);
-            item.gameObject.SetActive(true);
-            T component = item.GetComponent<T>();
-            if (component == null)
-            {
-                component = item.GetComponentInChildren<T>();
-            }
+        #endregion
 
-            items.Add(component);
-            item.gameObject.name += items.Count;
-            return component;
-        }
+        #region 寻找与获取
 
-        public T GetItem<T>(int index) where T : Component
-        {
-            return items[index] as T;
-        }
-
-        public virtual void ClearItems(bool destroy = true, bool delay = false)
-        {
-            if (destroy)
-            {
-                foreach (Component item in items)
-                {
-                    if (item != null)
-                    {
-                        if (delay)
-                            Destroy(item.gameObject);
-                        else
-                            DestroyImmediate(item.gameObject);
-                    }
-                }
-            }
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate(transform as RectTransform);
-            items.Clear();
-        }
-
-        // public virtual void RemoveItemAt(int index, bool destroy = true, bool delay = false)
-        // {
-        //     if (index < 0 || index >= items.Count) return;
-        //     if (cloneItem == null) return;
-        //     if (delay)
-        //     {
-        //         CoroutineHelper.DelayGuiFrames(1, () =>
-        //         {
-        //             if (destroy) DestroyImmediate(items[index].gameObject);
-        //             items.RemoveAt(index);
-        //         }); //等一下UI的事件更新再销毁
-        //     }
-        //     else
-        //     {
-        //         if (destroy) DestroyImmediate(items[index].gameObject);
-        //         items.RemoveAt(index);
-        //     }
-        // }
-
-        // public void RemoveItem(Component item, bool destroy = true, bool delay = false)
-        // {
-        //     RemoveItemAt(GetIndex(item), destroy, delay);
-        // }
-        //
-        // public void RemoveItemLast(bool destroy = true, bool delay = false)
-        // {
-        //     RemoveItemAt(items.Count - 1, destroy, delay);
-        // }
-        //
-        // public virtual void RemoveItems(int start, int count, bool destroy = true, bool delay = false)
-        // {
-        //     if (cloneItem == null) return;
-        //     if (delay)
-        //     {
-        //         CoroutineHelper.DelayGuiFrames(1, () =>
-        //         {
-        //             for (int i = start + count - 1; i >= start; i--)
-        //             {
-        //                 if (i >= 0 && i < items.Count)
-        //                 {
-        //                     if (destroy) DestroyImmediate(items[i].gameObject);
-        //                     items.RemoveAt(i);
-        //                 }
-        //             }
-        //         }); //等一下UI的事件更新再销毁
-        //     }
-        //     else
-        //     {
-        //         for (int i = start + count - 1; i >= start; i--)
-        //         {
-        //             if (i >= 0 && i < items.Count)
-        //             {
-        //                 if (destroy) DestroyImmediate(items[i].gameObject);
-        //                 items.RemoveAt(i);
-        //             }
-        //         }
-        //     }
-        // }
-
+        /// <summary>
+        /// 根据对应方法筛查对应的UI
+        /// </summary>
+        /// <param name="match">筛查方法，Predicate就是返回值为bool的Func</param>
+        /// <returns>符合规则的UI的下标</returns>
         public int FindIndex(Predicate<Component> match)
         {
             for (int i = 0; i < items.Count; i++)
@@ -166,15 +103,7 @@ namespace UI_Framework.Scripts.Tools
 
         public Component Find(Predicate<Component> match)
         {
-            for (int i = 0; i < items.Count; i++)
-            {
-                if (match(items[i]))
-                {
-                    return items[i];
-                }
-            }
-
-            return default;
+            return items.FirstOrDefault(t => match(t));
         }
 
         public int GetIndex(Component item)
@@ -182,6 +111,126 @@ namespace UI_Framework.Scripts.Tools
             return items.FindIndex((x) => x == item);
         }
 
+        #endregion
+
+        #region 清除与移除
+
+        public virtual void ClearItems(bool destroy = true, bool delay = false)
+        {
+            if (destroy)
+            {
+                foreach (var item in items.Where(item => item != null))
+                {
+                    if (delay)
+                        Destroy(item.gameObject);
+                    else
+                        DestroyImmediate(item.gameObject);
+                }
+            }
+
+            // 强制立即重建 UI 布局
+            LayoutRebuilder.ForceRebuildLayoutImmediate(transform as RectTransform);
+            items.Clear();
+        }
+        
+        public virtual void RemoveItemAt(int index, bool destroy = true, bool delay = false)
+        {
+            if (index < 0 || index >= items.Count) return;
+            if (cloneItem == null) return;
+            if (delay)
+            {
+                CoroutineHelper.DelayGuiFrames(1, () =>
+                {
+                    if (destroy) DestroyImmediate(items[index].gameObject);
+                    items.RemoveAt(index);
+                }); //等一下UI的事件更新再销毁
+            }
+            else
+            {
+                if (destroy) DestroyImmediate(items[index].gameObject);
+                items.RemoveAt(index);
+            }
+        }
+        
+        public void RemoveItem(Component item, bool destroy = true, bool delay = false)
+        {
+            RemoveItemAt(GetIndex(item), destroy, delay);
+        }
+        
+        public void RemoveItemLast(bool destroy = true, bool delay = false)
+        {
+            RemoveItemAt(items.Count - 1, destroy, delay);
+        }
+        
+        public virtual void RemoveItems(int start, int count, bool destroy = true, bool delay = false)
+        {
+            if (cloneItem == null) return;
+            if (delay)
+            {
+                CoroutineHelper.DelayGuiFrames(1, () =>
+                {
+                    for (int i = start + count - 1; i >= start; i--)
+                    {
+                        if (i >= 0 && i < items.Count)
+                        {
+                            if (destroy) DestroyImmediate(items[i].gameObject);
+                            items.RemoveAt(i);
+                        }
+                    }
+                }); //等一下UI的事件更新再销毁
+            }
+            else
+            {
+                for (int i = start + count - 1; i >= start; i--)
+                {
+                    if (i >= 0 && i < items.Count)
+                    {
+                        if (destroy) DestroyImmediate(items[i].gameObject);
+                        items.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region 显示与隐藏
+
+        public void HideItem(int index)
+        {
+            items[index].gameObject.SetActive(false);
+        }
+
+        public void HideAllItem()
+        {
+            foreach (var item in items) item.gameObject.SetActive(false);
+        }
+
+        public void ShowAllItem()
+        {
+            foreach (var item in items) item.gameObject.SetActive(true);
+        }
+
+        #endregion
+        
+        #region 移动、交换
+
+        protected virtual void SwapItem(int i, int j)
+        {
+            // SiblingIndex会计算inactive的物体，第一个是模板物体，所以items中是从1开始
+            int si = i + 1;
+            int sj = j + 1;
+            items[i].transform.SetSiblingIndex(sj);
+            items[j].transform.SetSiblingIndex(si);
+
+            (items[i], items[j]) = (items[j], items[i]);
+        }
+
+        /// <summary>
+        /// 按顺序swap一遍，消耗有点点高
+        /// </summary>
+        /// <param name="srcIndex"></param>
+        /// <param name="destIndex"></param>
         public void MoveItem(int srcIndex, int destIndex)
         {
             if (srcIndex > destIndex)
@@ -199,53 +248,12 @@ namespace UI_Framework.Scripts.Tools
                 }
             }
         }
+        
+        #endregion
 
-        public void HideItem(int index)
-        {
-            items[index].gameObject.SetActive(false);
-        }
+        #region 排序（快排）
 
-        public void ShowAllItem()
-        {
-            foreach (var i in items)
-                i.gameObject.SetActive(true);
-        }
-
-        public void Sort(Comparison<Component> comparison)
-        {
-            if (items.Count > 1)
-            {
-                QuickSort(comparison);
-            }
-        }
-
-        public void SortWithData<T>(List<T> data, Comparison<T> comparison)
-        {
-            if (items.Count > 1 && data.Count == items.Count)
-            {
-                QuickSortWithData(data, comparison);
-            }
-        }
-
-        protected virtual void SwapItem(int i, int j)
-        {
-            //SiblingIndex会计算inactive的物体，第一个是模板物体，所以items中是从1开始
-            int si = i + 1;
-            int sj = j + 1;
-            items[i].transform.SetSiblingIndex(sj);
-            items[j].transform.SetSiblingIndex(si);
-
-            (items[i], items[j]) = (items[j], items[i]);
-        }
-
-        /* This function takes last element as pivot,
-    places the pivot element at its correct
-    position in sorted array, and places all
-    smaller (smaller than pivot) to left of
-    pivot and all greater elements to right
-    of pivot */
-        protected int PartitionWithData<T>(List<T> data, int low,
-            int high, Comparison<T> comparison)
+        protected int PartitionWithData<T>(List<T> data, int low, int high, Comparison<T> comparison)
         {
             T temp;
             T pivot = data[high];
@@ -331,11 +339,10 @@ namespace UI_Framework.Scripts.Tools
                 }
             }
         }
-
-        protected int Partition(int low,
-            int high, Comparison<Component> comparison)
+        
+        protected int Partition(int low, int high, Comparison<Component> comparison)
         {
-            Component pivot = items[high];
+            var pivot = items[high];
 
             int i = (low - 1);
             for (int j = low; j <= high - 1; j++)
@@ -391,6 +398,35 @@ namespace UI_Framework.Scripts.Tools
                     stack[++top] = h;
                 }
             }
+        }
+
+        public void Sort(Comparison<Component> comparison)
+        {
+            if (items.Count > 1)
+            {
+                QuickSort(comparison);
+            }
+        }
+
+        public void SortWithData<T>(List<T> data, Comparison<T> comparison)
+        {
+            if (items.Count > 1 && data.Count == items.Count)
+            {
+                QuickSortWithData(data, comparison);
+            }
+        }
+        
+        #endregion
+
+        /// <summary>
+        /// 获取对应下标的物体
+        /// </summary>
+        /// <param name="index"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public T GetItem<T>(int index) where T : Component
+        {
+            return items[index] as T;
         }
     }
 }
