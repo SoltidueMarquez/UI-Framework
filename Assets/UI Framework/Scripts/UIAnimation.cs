@@ -56,7 +56,7 @@ namespace UI_Framework.Scripts
 
         #endregion
 
-        public static void FormActiveByType(GameObject gameObject)
+        private static void FormActiveByType(GameObject gameObject)
         {
             gameObject.SetActive(true);
             
@@ -69,5 +69,12 @@ namespace UI_Framework.Scripts
                     break;
             }
         }
+    }
+    
+    public enum FormAnimType
+    {
+        None,
+        Fade,
+        Zoom
     }
 }

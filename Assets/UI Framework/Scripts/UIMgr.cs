@@ -85,6 +85,7 @@ namespace UI_Framework.Scripts
         public int CreateUI<T>() where T : UIFormBase
         {
             // 通过反射获取默认构造实例（不实际创建GameObject）
+            // TODO：这边建议通过外部写一个静态类统一存储
             var tempInstance = System.Activator.CreateInstance<T>();
             var path = tempInstance.PrefabPath;
 
@@ -175,13 +176,6 @@ namespace UI_Framework.Scripts
         UIFormBase GetUIFormBase();
     }
 
-    public enum FormAnimType
-    {
-        None,
-        Fade,
-        Zoom
-    }
-    
     public enum FormType{
         None,
         Top,// 总是在上层
