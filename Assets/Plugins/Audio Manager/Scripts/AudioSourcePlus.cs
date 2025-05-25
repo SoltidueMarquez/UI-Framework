@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Audio_Manager
 {
     [Serializable]
-    public class AudioSourcePoolItem
+    public class AudioSourcePlus
     {
         public AudioSource audioSource;
         public string key;
         public float lastUsedTime;
         public Coroutine destroyCoroutine;
 
-        public AudioSourcePoolItem(string key, AudioSource audioSource)
+        public AudioSourcePlus(string key, AudioSource audioSource)
         {
             this.audioSource = audioSource;
             this.key = key;
