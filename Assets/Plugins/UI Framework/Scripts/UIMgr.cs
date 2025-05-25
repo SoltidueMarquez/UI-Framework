@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Audio_Manager;
 using UnityEngine;
 
 namespace UI_Framework.Scripts
@@ -7,7 +8,7 @@ namespace UI_Framework.Scripts
     // TODO：页面是否唯一的处理
     // TODO：加载预制体暂时为Resource.Load
     // TODO：LRU是不以应该包含没有被打开的面板？LRU的使用有点奇怪
-    public class UIMgr : Singleton<UIMgr>
+    public class UIMgr : PersistentSingleton<UIMgr>
     {
         [Tooltip("UI字典，键为物体名称，值为类")] public Dictionary<int, UIFormBase> forms = new Dictionary<int, UIFormBase>();
 

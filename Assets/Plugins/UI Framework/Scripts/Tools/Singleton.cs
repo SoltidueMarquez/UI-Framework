@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace UI_Framework.Scripts
+namespace UI_Framework.Scripts.Tools
 {
     /// <summary>
     /// 懒汉模式单例脚本
