@@ -93,7 +93,7 @@ MonoBehaviour:
   isOpen: 0
   formType: 1
   formAnimType: 2
-  ifUnique: 0
+  ifUnique: 1
   uiList: {fileID: 7786736956907105268}
 --- !u!1 &2132669193449351237
 GameObject:

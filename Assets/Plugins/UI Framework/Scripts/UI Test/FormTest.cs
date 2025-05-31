@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace UI_Framework.Scripts.Test
@@ -13,8 +12,6 @@ namespace UI_Framework.Scripts.Test
         
         private void Start()
         {
-            id1 = UIMgr.Instance.CreateUI<Test1>();
-            
             id2 = UIMgr.Instance.CreateUI<Test2>();
         }
 
@@ -22,6 +19,7 @@ namespace UI_Framework.Scripts.Test
         {
             if (Input.GetKeyDown(KeyCode.A))
             {
+                id1 = UIMgr.Instance.CreateUI<Test1>();
                 UIMgr.Instance.ShowUIForm(id1);
             }
             

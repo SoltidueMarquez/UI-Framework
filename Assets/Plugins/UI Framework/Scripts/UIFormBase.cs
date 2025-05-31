@@ -15,15 +15,14 @@ namespace UI_Framework.Scripts
         [Tooltip("UI显示类型")] public FormType formType = FormType.None;
 
         [Tooltip("动画类型")] public FormAnimType formAnimType;
+        
+        [Tooltip("是否唯一")] public bool ifUnique;
+        
+        public int id { get; private set; }
 
         /// <summary>
         /// 预制体的加载路径，一定要重写
         /// </summary>
-        public virtual string PrefabPath { get; }
-
-        public int id { get; private set; }
-
-        [Tooltip("是否唯一")] public bool ifUnique;
 
         #region 创建时与销毁时
         private void Awake()
@@ -51,7 +50,7 @@ namespace UI_Framework.Scripts
         /// <summary>
         /// 只会在创建时调用一次
         /// </summary>
-        protected void Init()
+        private void Init()
         {
             gameObject.SetActive(false);
             isOpen = false;

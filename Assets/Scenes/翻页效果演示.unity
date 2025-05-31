@@ -547,9 +547,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tess: 5
-  origin: {x: 0.117353156, y: -1.6637237}
-  direction: {x: 93.308105, y: 82.86035}
-  radius: 124.78878
+  origin: {x: -0.12018605, y: 0.25622255}
+  direction: {x: 78.836914, y: 77.75}
+  radius: 110.72633
   depth: 0
   rollup: 0
   sort: 1

@@ -5,16 +5,15 @@ using UnityEngine;
 
 namespace UI_Framework.Scripts
 {
-    // TODO：页面是否唯一的处理
     // TODO：加载预制体暂时为Resource.Load
     // TODO：LRU是不以应该包含没有被打开的面板？LRU的使用有点奇怪
     public class UIMgr : PersistentSingleton<UIMgr>
     {
-        [Tooltip("UI字典，键为物体名称，值为类")] public Dictionary<int, UIFormBase> forms = new Dictionary<int, UIFormBase>();
+        [Tooltip("UI字典，键为物体名称，值为类，全部的UI都在这里")] public Dictionary<int, UIFormBase> forms = new Dictionary<int, UIFormBase>();
 
         [Tooltip("当前显示的UI")] public List<int> activeUIList = new List<int>();
 
-        [Tooltip("面板根节点")] public Transform uiRoot => this.transform;
+        [Tooltip("面板根节点")] private Transform uiRoot => this.transform;
 
         #region 注册注销
 
@@ -81,20 +80,27 @@ namespace UI_Framework.Scripts
 
         #endregion
 
-        #region 动态生成与销毁
-
+        #region 动态生成销毁、与获取
         public int CreateUI<T>() where T : UIFormBase
         {
-            // 通过反射获取默认构造实例（不实际创建GameObject）
-            // TODO：这边建议通过外部写一个静态类统一存储
-            var tempInstance = System.Activator.CreateInstance<T>();
-            var path = tempInstance.PrefabPath;
+            // 先检查是否有唯一实例
+            foreach (var kv in forms)
+            {
+                if (kv.Value is T { ifUnique: true } existingForm)
+                {
+                    return existingForm.id; // 已存在唯一实例，返回其id
+                }
+            }
 
-            // 加载预制体
+            // 加载预制体（推荐使用静态注册表而不是反射）
+            var path = UIFormRegistry.GetPath<T>(); // 替代 tempInstance.PrefabPath
             var prefab = Resources.Load<GameObject>(path);
             var ui = Instantiate(prefab, uiRoot);
+            var form = ui.GetComponent<T>();
 
-            return ui.GetComponent<T>().id;
+            forms[form.id] = form;
+
+            return form.id;
         }
 
         public void DestroyUI(int id)
@@ -104,11 +110,28 @@ namespace UI_Framework.Scripts
             var form = forms[id];
             Destroy(form.gameObject);
         }
+        
+        /// <summary>
+        /// 获取到此类UI的全部实例id
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public List<int> GetCurrentUIIds<T>() where T : UIFormBase
+        {
+            List<int> ids = new();
+            foreach (var kv in forms)
+            {
+                if (kv.Value is T existingForm)
+                {
+                    ids.Add(existingForm.id); // 已存在唯一实例，返回其id
+                }
+            }
 
+            return ids;
+        }
         #endregion
-
+        
         #region UI操作
-
         // 显示UI
         public void ShowUIForm(int id)
         {
