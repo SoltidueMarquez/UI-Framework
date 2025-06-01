@@ -25,6 +25,7 @@ namespace UI_Framework.Scripts
         /// </summary>
 
         #region 创建时与销毁时
+        public event Action BeforeDestroy;
         private void Awake()
         {
             id = IdManager.GetUniqueID();
@@ -39,10 +40,17 @@ namespace UI_Framework.Scripts
 
         private void OnDestroy()
         {
+            if (isOpen) Close();
             IUIForm uiForm = this;
             uiForm.UnRegisterForm();
             
             IdManager.ReCycleId(id); // 回收id
+            BeforeDestroy?.Invoke();
+        }
+
+        public void DestroySelf()
+        {
+            Destroy(this.gameObject);
         }
         #endregion
 
@@ -65,21 +73,21 @@ namespace UI_Framework.Scripts
         #endregion
 
         #region 开启与关闭
-        protected virtual void OnOpen() { }
-        protected virtual void OnClose() { }
-        
+
+        public event Action OnOpen;
+        public event Action OnClose;
         public void Open()
         {
             isOpen = true;
             OpenAnim();
-            OnOpen();
+            OnOpen?.Invoke();
         }
 
         public void Close()
         {
             isOpen = false;
             CloseAnim();
-            OnClose();
+            OnClose?.Invoke();
         }
         #endregion
 

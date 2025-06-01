@@ -1,56 +1,45 @@
 ﻿using System.Collections.Generic;
+using UI_Framework.Scripts.Specific_UI;
+using UI_Framework.Scripts.Tools;
 using UnityEngine;
 
 namespace UI_Framework.Scripts.Test
 {
     public class FormTest : MonoBehaviour
     {
-        public int id1;
-        public int id2;
-        
         public List<int> id1List;
         
-        private void Start()
-        {
-            id2 = UIMgr.Instance.CreateUI<Test2>();
-        }
-
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.A))
             {
-                id1 = UIMgr.Instance.CreateUI<Test1>();
-                UIMgr.Instance.ShowUIForm(id1);
+                UIMgr.Instance.CreateUI<Test1>().Open();
             }
             
             if (Input.GetKeyDown(KeyCode.D))
             {
-                UIMgr.Instance.ShowUIForm(id2);
+                UIMgr.Instance.CreateUI<UIQuestionBox>().SetTips("确认要跳转场景吗").YesCallback(() =>
+                { SceneChangeHelper.Instance.LoadScene("SceneChangeDemo1"); });
             }
             
             if (Input.GetKeyDown(KeyCode.W))
             {
-                UIMgr.Instance.HideUIForm(id1);
-            }
-            
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                UIMgr.Instance.HideUIForm(id2);
-            }
-            
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                UIMgr.Instance.DestroyUI(id1);
+                UIMgr.Instance.GetFirstUI<Test1>()?.Close();
             }
 
-            if (UIMgr.Instance.HasActiveForm())
+            if (Input.GetKeyDown(KeyCode.Space))
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
+                UIMgr.Instance.GetFirstUI<Test1>().DestroySelf();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (UIMgr.Instance.HasActiveForm())
                 {
                     UIMgr.Instance.HideUIFormTurn();
                 }
             }
-            
+
             // if (Input.GetKeyDown(KeyCode.Space))
             // {
             //     id1List.Add(UIMgr.Instance.CreateUI<Test1>());

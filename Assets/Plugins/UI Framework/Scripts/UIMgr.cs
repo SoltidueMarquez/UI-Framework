@@ -81,14 +81,14 @@ namespace UI_Framework.Scripts
         #endregion
 
         #region 动态生成销毁、与获取
-        public int CreateUI<T>() where T : UIFormBase
+        public T CreateUI<T>() where T : UIFormBase
         {
             // 先检查是否有唯一实例
             foreach (var kv in forms)
             {
                 if (kv.Value is T { ifUnique: true } existingForm)
                 {
-                    return existingForm.id; // 已存在唯一实例，返回其id
+                    return existingForm; // 已存在唯一实例，返回其id
                 }
             }
 
@@ -100,7 +100,19 @@ namespace UI_Framework.Scripts
 
             forms[form.id] = form;
 
-            return form.id;
+            form.OnOpen += () =>
+            {
+                activeUIList.Add(form.id);
+                // LRU更新，将节点移到最前面
+                UpdateUseLru(form);
+            };
+            form.OnClose += () =>
+            {
+                activeUIList.Remove(form.id);
+                // LRU更新
+                UpdateUseLru(form);
+            };
+            return form;
         }
 
         public void DestroyUI(int id)
@@ -108,7 +120,12 @@ namespace UI_Framework.Scripts
             if (!forms.ContainsKey(id)) return;
 
             var form = forms[id];
-            Destroy(form.gameObject);
+            form.DestroySelf();
+        }
+        
+        public void DestroyUI(UIFormBase ui)
+        {
+            DestroyUI(ui.id);
         }
         
         /// <summary>
@@ -129,6 +146,32 @@ namespace UI_Framework.Scripts
 
             return ids;
         }
+        
+        public List<T> GetCurrentUIs<T>() where T : UIFormBase
+        {
+            List<T> uis = new();
+            foreach (var kv in forms)
+            {
+                if (kv.Value is T existingForm)
+                {
+                    uis.Add(existingForm); // 已存在唯一实例，返回其id
+                }
+            }
+
+            return uis;
+        }
+        
+        public T GetFirstUI<T>() where T : UIFormBase
+        {
+            foreach (var kv in forms)
+            {
+                if (kv.Value is T existingForm)
+                {
+                    return existingForm;
+                }
+            }
+            return null;
+        }
         #endregion
         
         #region UI操作
@@ -140,10 +183,6 @@ namespace UI_Framework.Scripts
             var form = forms[id];
             if (form.isOpen) return; //已经打开了就直接返回
             form.Open();
-
-            activeUIList.Add(form.id);
-            // LRU更新，将节点移到最前面
-            UpdateUseLru(form);
         }
 
         // 隐藏UI面板
@@ -154,10 +193,6 @@ namespace UI_Framework.Scripts
             var form = forms[id];
             if (!form.isOpen) return;
             form.Close();
-
-            activeUIList.Remove(form.id);
-            // LRU更新
-            UpdateUseLru(form);
         }
 
         // 隐藏所有UI
